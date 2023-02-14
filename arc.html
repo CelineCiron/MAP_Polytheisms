@@ -1,0 +1,94 @@
+
+<!doctype html>
+<html class="no-js" lang="ja">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <title>MAP</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mapbox-gl/0.53.1/mapbox-gl.css" />
+        <script src="https://code.jquery.com/jquery-3.4.0.js"
+        integrity="sha256-DYZMCC8HTC+QDr5QNaIcfR7VSPtcISykd+6eSmBW5qo=" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mapbox-gl/0.53.1/mapbox-gl.js"></script>
+
+        <script src="https://unpkg.com/@deck.gl/core@^8.0.0/dist.min.js"></script>
+        <script src="https://unpkg.com/@deck.gl/layers@^8.0.0/dist.min.js"></script>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-scale/1.0.7/d3-scale.js"></script>
+        
+        
+        
+        <style type="text/css">
+        body {
+            margin: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .deck-tooltip {
+            font-size: 0.8em;
+            font-family: Helvetica, Arial, sans-serif;
+        }
+        </style>
+</head>
+
+<body>
+
+<script src="https://unpkg.com/@deck.gl/core@^8.0.0/dist.min.js"></script>
+<script src="https://unpkg.com/@deck.gl/layers@^8.0.0/dist.min.js"></script>
+
+
+<script>
+const {DeckGL, ArcLayer} = deck;
+
+const layer = new ArcLayer({
+  id: 'ArcLayer',
+  data: 'flux_dieux.geojson',
+  
+  /* props from ArcLayer class */
+  
+  // getHeight: 1,
+  
+  getSourcePosition: d => [Number(f.lat_target), Number(f.lng_target)],
+  getTargetPosition: d => [Number(f.lat_source), Number(f.lng_source)],
+  // getTilt: 0,
+  getWidth: 12,
+  // greatCircle: false,
+  // widthMaxPixels: Number.MAX_SAFE_INTEGER,
+  // widthMinPixels: 0,
+  // widthScale: 1,
+  // widthUnits: 'pixels',
+  
+  /* props inherited from Layer class */
+  
+  // autoHighlight: false,
+  // coordinateOrigin: [0, 0, 0],
+  // coordinateSystem: COORDINATE_SYSTEM.LNGLAT,
+  // highlightColor: [0, 0, 128, 128],
+  // modelMatrix: null,
+  // opacity: 1,
+  pickable: true,
+  // visible: true,
+  // wrapLongitude: false,
+});
+
+new DeckGL({
+  mapStyle: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  initialViewState: {
+    longitude: 35,
+    latitude: 14,
+    zoom: 3,
+    maxZoom: 20,
+    pitch: 30,
+    bearing: 0
+  },
+  controller: true,
+  getTooltip: ({object}) => object && `${object.from.name} to ${object.to.name}`,
+  layers: [layer]
+});
+
+</script>
+</body>
+</html>

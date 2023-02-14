@@ -1,0 +1,221 @@
+<!doctype html>
+<html class="no-js" lang="ja">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <title>MAP</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mapbox-gl/0.53.1/mapbox-gl.css" />
+        <script src="https://code.jquery.com/jquery-3.4.0.js"
+        integrity="sha256-DYZMCC8HTC+QDr5QNaIcfR7VSPtcISykd+6eSmBW5qo=" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mapbox-gl/0.53.1/mapbox-gl.js"></script>
+
+        <script src="https://unpkg.com/deck.gl@latest/dist.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-scale/1.0.7/d3-scale.js"></script>
+        <style type="text/css">
+            html, body {
+                padding: 0;
+                margin: 0;
+                width: 100%;
+                height: 100%;
+            }
+            #panel {
+                position: absolute;
+                background: #ffffff00;
+                top: 0;
+                left: 0;
+                margin: 4px;
+                padding: 4px;
+                line-height: 1;
+                width:260px;
+                height:26px;
+                z-index: 2;
+                text-align: center;
+                vertical-align: middle;
+            }
+            #tooltip {
+                font-family: Helvetica, Arial, sans-serif;
+                font-size: 12px;
+                position: absolute;
+                padding: 4px;
+                margin: 8px;
+                background: rgba(0, 0, 0, 0.8);
+                color: #fff;
+                max-width: 300px;
+                z-index: 9;
+                pointer-events: none;
+            }
+        </style>
+    </head>
+
+    <body>
+
+
+
+        <div id="panel"><select id="places" name="places"></select></div>
+        <div id="app" style="width:100%;height:100%;"></div>
+        <div id="tooltip"></div>
+    </body>
+
+    <script type="text/javascript">
+        const LAT = 35.5;
+        const LNG = 14.0;
+        let min=1e10;
+        let max=-1e10;
+        let places={};
+        let data=[];
+        let icon=[];
+        const ICON_MAPPING = {
+            arker: {x: 0, y: 0, width: 32, height: 32, mask: true}
+        };
+        const DEFAULT_COLOR = [29, 145, 192];
+        const COLOR_SCALE = d3.scaleLinear()
+            .domain([0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
+            .range([
+                [199, 233, 180],
+                [237, 248, 177],
+                [255, 255, 204],
+                [255, 237, 160],
+                [254, 217, 118],
+                [254, 178, 76],
+                [253, 141, 60],
+                [252, 78, 42],
+                [227, 26, 28],
+                [189, 0, 38],
+                [128, 0, 38]
+            ]);
+
+        const deckgl = new deck.DeckGL({
+            container: 'app',
+            mapboxApiAccessToken: "pk.eyJ1IjoiY2VsaW5lY2lyb24iLCJhIjoiY2xkeDRvamM1MDJrYzNubWtjc3dvbHl0biJ9.3CUCgvFV0qOjaXDW-D9z5w",
+            mapStyle: "mapbox://styles/mapbox/dark-v9",
+            longitude: LNG,
+            latitude: LAT,
+            zoom: 5,
+            pitch: 40,
+            bearing: -10,
+            onViewStateChange: ({viewState}) => {
+                return viewState;
+            }
+        });
+        const loadData = () => {
+            d3.json("flux_dieux.geojson", (error, response)=>{
+                let n=response.features.length;
+                let name=[];
+                for(let i=0;i<n;i++){
+                    if(!places[response.features[i].properties.element]){
+                        places[response.features[i].properties.element]=[];
+                        name.push(response.features[i].properties.element);
+                        icon.push(getPlaces(response.features[i]));
+                    }
+                    places[response.features[i].properties.element].push(getlatlon(response.features[i]));
+                    let p=response.features[i].properties.element;
+                    if(p<=0)p=1;
+                    p=Math.log10(p);
+                    max=Math.max(p,max);
+                    min=Math.min(p,min);
+                }
+                for(let i=0;i<name.length;i++){
+                    let op=$("<option />");
+                    op.attr("value",name[i]);
+                    op.text(name[i]);
+                    $("#places").append(op);
+                }
+                $("#places").change((evt)=>{
+                    updatePlaces(evt.target.value);
+                });
+                data=places["xxxxx"];
+                renderLayer(data);
+            });
+        };
+        const updatePlaces =(str) =>{
+            deckgl.setProps({layers: []});
+            data=places[str];
+            renderLayer(data);
+        };
+        const renderLayer = (data) => {
+            const arcLayer = new deck.ArcLayer({
+                id: 'arc',
+                data,
+                getSourcePosition: d => d.coordinates,
+                getTargetPosition: d => [Number(d.lng_target), Number(d.lat_target)],
+                getSourceColor: d => COLOR_SCALE(d.val),
+                getTargetColor: d => COLOR_SCALE(d.val),
+                getWidth: 1.0
+            });
+            const plotLayer= new deck.ScatterplotLayer({
+                id: 'plot',
+                data: icon,
+                pickable: true,
+                getPosition: d => d.coordinates,
+                getColor: d => d.color,
+                getRadius: d => d.radius,
+                radiusMinPixels: 2,
+                radiusMaxPixels: 60,
+                radiusScale: 5,
+                opacity: 0.2,
+                onHover: (e) => console.log(e),
+                onClick: (e) => console.log(e)
+            });
+            const iconLayer=new deck.IconLayer({
+                id: 'icon',
+                data: icon,
+                getIcon: d => ({
+                    url: "https://upload.wikimedia.org/wikipedia/commons/e/ed/Map_pin_icon.svg",
+                    width: 94,
+                    height: 128,
+                    anchorY: 128
+                }),
+                getSize: 8,
+                pickable: true,
+                sizeScale: 5,
+                getPosition: d => d.coordinates,
+                onHover: updateTooltip,
+                onClick:({object, x, y}) => {
+                    $("#places").val(object.element).change();
+                }
+            });
+            deckgl.setProps({
+                layers: [arcLayer,plotLayer,iconLayer]
+            });
+        };
+        const getlatlon=(feature) =>{
+            let geo=feature.geometry.coordinates;
+            let pro=feature.properties;
+            let ret={};
+            ret["source"]=[geo[0][0],geo[0][1]];
+            ret["target"]=[geo[1][0],geo[1][1]];
+            let p=pro.element;
+            if(p<=0)p=1;
+            p=Math.log10(p);
+            ret["val"]=(p-min)/(max-min);
+            ret["st"]=pro.S10b_001;
+            ret["ed"]=pro.S10b_004;
+            return ret;
+        };
+        const getPlaces=(feature) =>{
+            let geo=feature.geometry.coordinates;
+            let pro=feature.properties;
+            let ret={};
+            ret["coordinates"]=[geo[0][0],geo[0][1]];
+            ret["color"]=[255, 0, 0];
+            ret["radius"]=1000;
+            ret["name"]=pro.element;
+            return ret;
+        };
+        const updateTooltip=({x, y, object}) => {
+            const tooltip = document.getElementById("tooltip");
+            if (object) {
+                tooltip.style.visibility="visible";
+                tooltip.style.top = y+"px";
+                tooltip.style.left = x+"px";
+                tooltip.innerHTML = object.name;
+            } else { 
+                tooltip.style.visibility="hidden";
+                tooltip.innerHTML = "";
+            }
+        };
+        loadData();
+    </script>
+</html>

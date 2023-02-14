@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.13.2/mapbox-gl.css' rel='stylesheet' />
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <script src="https://unpkg.com/deck.gl@latest/dist.min.js"></script>
+        <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v1.13.2/mapbox-gl.js"></script>
+        
+
+    <style>
+        body {
+        width: 100vw;
+        height: 100vh;
+        margin: 0;
+        }
+
+        #control-panel {
+        font-family: Helvetica, Arial, sans-serif;
+        position: absolute;
+        background: #474780;
+        top: 0;
+        left: 0;
+        margin: 12px;
+        padding: 20px;
+        z-index: 1;
+        }
+
+        label {
+        display: inline-block;
+        width: 140px;
+        }
+    </style>   
+    
+</head>
+
+<body>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/deck.gl@latest/dist.min.js"></script>
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v1.13.2/mapbox-gl.js"></script>
+   
+    
+    <div id="control-panel">
+        <div>
+          <label>Radius</label>
+          <input id="radius" type="range" min="1000" max="20000" step="1000" value="1000"></input>
+          <span id="radius-value"></span>
+        </div>
+        <div>
+          <label>Coverage</label>
+          <input id="coverage" type="range" min="0" max="1" step="0.1" value="1"></input>
+          <span id="coverage-value"></span>
+        </div>
+        <div>
+          <label>Upper Percentile</label>
+          <input id="upperPercentile" type="range" min="90" max="100" step="1" value="100"></input>
+          <span id="upperPercentile-value"></span>
+        </div>
+      </div>
+
+    <script type="text/javascript">
+        const {DeckGL, HexagonLayer} = deck;
+
+        const deckgl = new DeckGL({
+        mapStyle: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+        initialViewState: {
+            longitude: 14.4157,
+            latitude: 35.2324,
+            zoom: 5,
+            minZoom: 3,
+            maxZoom: 15,
+            pitch: 40.5
+        },
+        controller: true
+        });
+
+        const data = d3.csv('couches/datamere.csv');
+
+        const OPTIONS = ['radius', 'coverage', 'upperPercentile'];
+
+        const COLOR_RANGE = [
+        [1, 152, 189],
+        [73, 227, 206],
+        [216, 254, 181],
+        [254, 237, 177],
+        [254, 173, 84],
+        [209, 55, 78]
+        ];
+
+        OPTIONS.forEach(key => {
+        document.getElementById(key).oninput = renderLayer;
+        });
+
+        renderLayer();
+
+        function renderLayer () {
+        const options = {};
+        OPTIONS.forEach(key => {
+            const value = +document.getElementById(key).value;
+            document.getElementById(key + '-value').innerHTML = value;
+            options[key] = value;
+        });
+
+        const hexagonLayer = new HexagonLayer({
+            id: 'heatmap',
+            colorRange: COLOR_RANGE,
+            data,
+            elevationRange: [0, 1000],
+            elevationScale: 250,
+            extruded: true,
+            getPosition: d => [Number(d.lng), Number(d.lat)],
+            opacity: 1,
+            ...options
+        });
+
+        deckgl.setProps({
+            layers: [hexagonLayer]
+        });
+        }
+                    
+    </script>
+
+
+    </body>
+</html>
