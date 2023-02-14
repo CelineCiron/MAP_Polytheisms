@@ -100,7 +100,7 @@
             }
         });
         const loadData = () => {
-            d3.json("flux_dieux.geojson", (error, response)=>{
+            d3.json("couches/flux_dieux.geojson", (error, response)=>{
                 let n=response.features.length;
                 let name=[];
                 for(let i=0;i<n;i++){
